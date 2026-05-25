@@ -92,8 +92,10 @@ while True:
     # GRAYSCALE
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
     # EDGE DETECTION
-    edges = cv2.Canny(gray, 50, 150)
+    edges = cv2.Canny(blur, 50, 150)
 
     # ROI MASK
     height = edges.shape[0]
@@ -101,11 +103,12 @@ while True:
     mask = np.zeros_like(edges)
 
     polygon = np.array([[
-        (0, height),
-        (frame.shape[1], height),
-        (frame.shape[1] // 2 + 150, height // 2),
-        (frame.shape[1] // 2 - 150, height // 2)
-    ]], np.int32)
+    (80, height),
+    (frame.shape[1] - 60, height),
+    (frame.shape[1] // 2 + 180, height // 2 + 60),
+    (frame.shape[1] // 2 - 180, height // 2 + 60)
+]], np.int32)
+
 
     cv2.fillPoly(mask, polygon, 255)
 
@@ -118,9 +121,9 @@ while True:
         roi,
         1,
         np.pi / 180,
-        50,
-        minLineLength=40,
-        maxLineGap=100
+        30,
+        minLineLength=30,
+        maxLineGap=150
     )
 
 
@@ -143,8 +146,18 @@ while True:
             slope = (y2 - y1) / (x2 - x1)
 
             # IGNORE HORIZONTAL + EXTREME LINES
-            if abs(slope) < 0.5 or abs(slope) > 2:
+            if abs(slope) < 0.3 or abs(slope) > 2:
                 continue
+
+            # spatial filtering
+            if x1 > frame.shape[1] * 0.98:
+                continue
+
+            # region filtering
+            if y1 < frame.shape[0] * 0.5:
+                continue
+
+
 
             mid_x = frame.shape[1] // 2
 
@@ -154,25 +167,17 @@ while True:
 
             # RIGHT LANE
 
-            elif slope > 0.4 and x1 > mid_x:
-                right_line.append(line)
+            elif slope > 0.3 and x1 > mid_x:
+                # sadece sağ yarıyı al + çok kenardaki çizgileri at
+                if frame.shape[1] * 0.55 < x1 < frame.shape[1] * 0.95:
+               # çok uzaktakileri azaltmak için alt bölgede olsun
+                   if y1 > frame.shape[0] * 0.55:
+                      right_line.append(line)
             
                
             
         
-               
-           
-               
 
-                    
-                
-
-# Ignore very right region (cars)
-            if x1 > frame.shape[1] * 0.90:
-                continue
-
-            if y1 < frame.shape[0] * 0.55:
-                continue
     # ================= LEFT LANE FITTING =================
 
     left_x = []
@@ -227,14 +232,17 @@ while True:
     right_x = []
     right_y = []
 
-    for line in right_line:
+    if len(right_line) > 0:
+        # en yakın çizgi: en büyük y değeri olan
+        best_right = max(
+            right_line,
+            key=lambda l: max(l[0][1], l[0][3])  # y1 veya y2 hangi büyükse onu al
+        )
 
-        x1, y1, x2, y2 = line[0]
-
+        x1, y1, x2, y2 = best_right[0]
         right_x.extend([x1, x2])
         right_y.extend([y1, y2])
 
-    if len(right_x) > 0:
 
         # LINE FITTING
         right_fit = np.polyfit(right_y, right_x, 1)
@@ -248,11 +256,11 @@ while True:
         x2 = int(right_fit[0] * y2 + right_fit[1])
 
         # TEMPORAL SMOOTHING
-        right_x1 = int(0.8 * prev_right_x1 + 0.2 * x1)
-        right_y1 = int(0.8 * prev_right_y1 + 0.2 * y1)
+        right_x1 = int(0.7 * prev_right_x1 + 0.3 * x1)
+        right_y1 = int(0.7 * prev_right_y1 + 0.3 * y1)
 
-        right_x2 = int(0.8 * prev_right_x2 + 0.2 * x2)
-        right_y2 = int(0.8 * prev_right_y2 + 0.2 * y2)
+        right_x2 = int(0.7 * prev_right_x2 + 0.3 * x2)
+        right_y2 = int(0.7 * prev_right_y2 + 0.3 * y2)
 
         # UPDATE PREVIOUS VALUES
         prev_right_x1 = right_x1
@@ -305,15 +313,18 @@ while True:
         )
 
         # LANE CENTER
-        lane_center = ((left_x1 + left_x2) // 2 + (right_x1 + right_x2) // 2) // 2
+        lane_center = (left_x1 + right_x1) // 2
 
         # FRAME CENTER
-        frame_center = frame.shape[1] // 2
+        offset = 38
+        frame_center = frame.shape[1] // 2 + offset
+
+        print("lane_center:", lane_center, "frame_center:", frame_center)
 
 
         # ================= LANE DEPARTURE =================
 
-        if abs(lane_center - frame_center) > 10:
+        if abs(lane_center - frame_center) > 40:
 
             cv2.putText(
                 annotated_frame,
