@@ -71,10 +71,39 @@ while True:
 
         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
+        #BOX CENTER
+        box_center_x = (x1 + x2)//2
+
+        #FRAME CENTER
+        frame_center = frame.shape[1] // 2
+
+
         object_height = y2 - y1
 
         # OBJECT TOO CLOSE
-        if object_height > frame_height * 0.35:
+
+        distance = int(5000/object_height)
+        
+
+
+        cv2.putText(
+                annotated_frame,
+                f"{distance} m",
+                (int(x1 + 5), int(y2 - 10)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 255, 255),
+                2
+            )
+        
+        if (
+            object_height > frame_height * 0.35
+            and abs(box_center_x - frame_center) < 120
+            
+        ):
+            
+           
+
 
             cv2.putText(
                 annotated_frame,
@@ -92,21 +121,24 @@ while True:
     # GRAYSCALE
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    # WHITE COLOR FILTER
+    _,  white_mask = cv2.threshold(gray, 170, 255, cv2.THRESH_BINARY)
+
+    
 
     # EDGE DETECTION
-    edges = cv2.Canny(blur, 50, 150)
+    edges = cv2.Canny(white_mask, 70, 180)
 
     # ROI MASK
-    height = edges.shape[0]
+    height, width = edges.shape[:2]
 
     mask = np.zeros_like(edges)
 
     polygon = np.array([[
-    (80, height),
-    (frame.shape[1] - 60, height),
-    (frame.shape[1] // 2 + 180, height // 2 + 60),
-    (frame.shape[1] // 2 - 180, height // 2 + 60)
+        (150,  height),           # sol alt  → (150, 540)
+        (810,  height),           # sağ alt  → (810, 540)
+        (600,  int(height*0.68)), # sağ üst  → (600, 367)
+        (360,  int(height*0.68)), # sol üst  → (360, 367)
 ]], np.int32)
 
 
@@ -121,10 +153,19 @@ while True:
         roi,
         1,
         np.pi / 180,
-        30,
-        minLineLength=30,
-        maxLineGap=150
+        40,
+        minLineLength=80,
+        maxLineGap=100
     )
+
+#TEST
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            slope = (y2 - y1) / (x2 - x1) if x2 != x1 else 999
+            cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 255), 1)
+            cv2.putText(annotated_frame, f"{slope:.2f}", (x1, y1),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 0), 1)
 
 
     # ================= LEFT / RIGHT CLASSIFICATION =================
@@ -167,11 +208,11 @@ while True:
 
             # RIGHT LANE
 
-            elif slope > 0.3 and x1 > mid_x:
-                # sadece sağ yarıyı al + çok kenardaki çizgileri at
-                if frame.shape[1] * 0.55 < x1 < frame.shape[1] * 0.95:
-               # çok uzaktakileri azaltmak için alt bölgede olsun
-                   if y1 > frame.shape[0] * 0.55:
+            elif slope > 0.25 and x1 > mid_x:
+               
+                if frame.shape[1] * 0.50 < x1 < frame.shape[1] * 0.98:
+               
+                   if y1 > frame.shape[0] * 0.35:
                       right_line.append(line)
             
                
@@ -204,11 +245,11 @@ while True:
         x2 = int(left_fit[0] * y2 + left_fit[1])
 
         # TEMPORAL SMOOTHING
-        left_x1 = int(0.8 * prev_left_x1 + 0.2 * x1)
-        left_y1 = int(0.8 * prev_left_y1 + 0.2 * y1)
+        left_x1 = int(0.85 * prev_left_x1 + 0.15 * x1)
+        left_y1 = int(0.85 * prev_left_y1 + 0.15 * y1)
 
-        left_x2 = int(0.8 * prev_left_x2 + 0.2 * x2)
-        left_y2 = int(0.8 * prev_left_y2 + 0.2 * y2)
+        left_x2 = int(0.85 * prev_left_x2 + 0.15 * x2)
+        left_y2 = int(0.85 * prev_left_y2 + 0.15 * y2)
 
         # UPDATE PREVIOUS VALUES
         prev_left_x1 = left_x1
@@ -232,14 +273,8 @@ while True:
     right_x = []
     right_y = []
 
-    if len(right_line) > 0:
-        # en yakın çizgi: en büyük y değeri olan
-        best_right = max(
-            right_line,
-            key=lambda l: max(l[0][1], l[0][3])  # y1 veya y2 hangi büyükse onu al
-        )
-
-        x1, y1, x2, y2 = best_right[0]
+    for line in right_line:
+        x1, y1, x2, y2 = line[0]
         right_x.extend([x1, x2])
         right_y.extend([y1, y2])
 
@@ -256,11 +291,11 @@ while True:
         x2 = int(right_fit[0] * y2 + right_fit[1])
 
         # TEMPORAL SMOOTHING
-        right_x1 = int(0.7 * prev_right_x1 + 0.3 * x1)
-        right_y1 = int(0.7 * prev_right_y1 + 0.3 * y1)
+        right_x1 = int(0.85 * prev_right_x1 + 0.15 * x1)
+        right_y1 = int(0.85 * prev_right_y1 + 0.15 * y1)
 
-        right_x2 = int(0.7 * prev_right_x2 + 0.3 * x2)
-        right_y2 = int(0.7 * prev_right_y2 + 0.3 * y2)
+        right_x2 = int(0.85 * prev_right_x2 + 0.15 * x2)
+        right_y2 = int(0.85 * prev_right_y2 + 0.15 * y2)
 
         # UPDATE PREVIOUS VALUES
         prev_right_x1 = right_x1
@@ -324,7 +359,7 @@ while True:
 
         # ================= LANE DEPARTURE =================
 
-        if abs(lane_center - frame_center) > 40:
+        if abs(lane_center - frame_center) > 60:
 
             cv2.putText(
                 annotated_frame,
@@ -340,7 +375,7 @@ while True:
         # ================= STEERING ESTIMATION =================
 
         # TURN LEFT
-        if lane_center < frame_center - 20:
+        if lane_center < frame_center - 80:
 
             cv2.putText(
                 annotated_frame,
@@ -353,7 +388,7 @@ while True:
             )
 
         # TURN RIGHT
-        elif lane_center > frame_center + 20:
+        elif lane_center > frame_center + 80:
 
             cv2.putText(
                 annotated_frame,
