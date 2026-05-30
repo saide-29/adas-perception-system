@@ -5,10 +5,10 @@ import numpy as np
 
 
 # LOAD YOLO MODEL
-model = YOLO("yolov8n.pt")
+model = YOLO("models/yolov8n.pt")
 
 # OPEN VIDEO
-cap = cv2.VideoCapture("road.mp4")
+cap = cv2.VideoCapture("videos/road.mp4")
 
 
 # PREVIOUS LEFT LANE VALUES
@@ -158,14 +158,7 @@ while True:
         maxLineGap=100
     )
 
-#TEST
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            slope = (y2 - y1) / (x2 - x1) if x2 != x1 else 999
-            cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 255), 1)
-            cv2.putText(annotated_frame, f"{slope:.2f}", (x1, y1),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 0), 1)
+
 
 
     # ================= LEFT / RIGHT CLASSIFICATION =================
