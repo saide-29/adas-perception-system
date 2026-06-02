@@ -137,9 +137,10 @@ adas-perception-system/
 
 ## Demo
 
-![Demo Frame](demo/frame1.png)
+![ADAS Demo](demo/demo.gif)
 
-*Sample output of the ADAS perception system.*
+*Real-time vehicle detection, lane tracking, steering estimation, and warning generation.*
+
 
 ## Skills Demonstrated
 
