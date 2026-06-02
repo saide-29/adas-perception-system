@@ -250,15 +250,21 @@ while True:
 
         prev_left_x2 = left_x2
         prev_left_y2 = left_y2
-
+        
+    else:
+        left_x1 = prev_left_x1
+        left_y1 = prev_left_y1
+        left_x2 = prev_left_x2
+        left_y2 = prev_left_y2
+        
         # DRAW LEFT LANE
-        cv2.line(
-            annotated_frame,
-            (left_x1, left_y1),
-            (left_x2, left_y2),
-            (255, 0, 0),
-            5
-        )
+    cv2.line(
+        annotated_frame,
+        (left_x1, left_y1),
+        (left_x2, left_y2),
+        (255, 0, 0),
+        5
+    )
 
 
     # ================= RIGHT LANE FITTING =================
@@ -271,7 +277,7 @@ while True:
         right_x.extend([x1, x2])
         right_y.extend([y1, y2])
 
-
+    if len(right_x) > 0:
         # LINE FITTING
         right_fit = np.polyfit(right_y, right_x, 1)
 
@@ -297,14 +303,23 @@ while True:
         prev_right_x2 = right_x2
         prev_right_y2 = right_y2
 
-        # DRAW RIGHT LANE
-        cv2.line(
-            annotated_frame,
-            (right_x1, right_y1),
-            (right_x2, right_y2),
-            (0, 255, 0),
-            5
-        )
+    else: 
+        
+
+        right_x1 = prev_right_x1
+        right_y1 = prev_right_y1
+
+        right_x2 = prev_right_x2
+        right_y2 = prev_right_y2
+
+       # DRAW RIGHT LANE
+    cv2.line(
+        annotated_frame,
+        (right_x1, right_y1),
+        (right_x2, right_y2),
+        (0, 255, 0),
+        5
+    )
 
 
     # ================= LANE AREA + STEERING =================
