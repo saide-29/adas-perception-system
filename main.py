@@ -135,10 +135,10 @@ while True:
     mask = np.zeros_like(edges)
 
     polygon = np.array([[
-        (150,  height),           # sol alt  → (150, 540)
-        (810,  height),           # sağ alt  → (810, 540)
-        (600,  int(height*0.68)), # sağ üst  → (600, 367)
-        (360,  int(height*0.68)), # sol üst  → (360, 367)
+        (150,  height),           
+        (810,  height),          
+        (600,  int(height*0.68)), 
+        (360,  int(height*0.68)), 
 ]], np.int32)
 
 

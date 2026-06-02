@@ -78,20 +78,22 @@ To test the system with a different video, update the video path in `main.py`.
 
 ## Project Structure
 
-```text
 adas-perception-system/
 │
 ├── demo/
+│   ├── demo.gif
+│   └── frame1.png
 ├── models/
 │   └── yolov8n.pt
 ├── videos/
 │   ├── road.mp4
 │   └── road2.mp4
 ├── .gitignore
+├── LICENSE
 ├── main.py
 ├── README.md
 └── requirements.txt
-```
+
 
 ## Perception Pipeline
 
