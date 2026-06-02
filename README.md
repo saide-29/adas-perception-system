@@ -77,7 +77,7 @@ cap = cv2.VideoCapture("videos/road.mp4")
 To test the system with a different video, update the video path in `main.py`.
 
 ## Project Structure
-
+```text
 adas-perception-system/
 │
 ├── demo/
@@ -93,7 +93,7 @@ adas-perception-system/
 ├── main.py
 ├── README.md
 └── requirements.txt
-
+```
 
 ## Perception Pipeline
 
